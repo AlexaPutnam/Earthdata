@@ -17,31 +17,6 @@ from netCDF4 import Dataset
 from pyproj import Transformer
 from scipy.interpolate import NearestNDInterpolator
 
-
-'''
-def test_data():
-    pthTD = '/Users/alexaputnam/Roses_2022_A44_CSDSA/Data/TestData/'
-    ds_100m = Dataset(pthTD+'SWOT_L2_HR_Raster_100m_UTM48P_N_x_x_x_014_396_068F_20240501T142345_20240501T142406_PIC0_01.nc')
-    sdir = '/Users/alexaputnam/Roses_2022_A44_CSDSA/Data/TestData/SWOT_L2_HR_LakeSP_Prior_016_305_EU_20240609T020623_20240609T021626_PIC0_01/'
-    ds_100m = Dataset(sdir+'SWOT_L2_HR_LakeSP_Prior_016_305_EU_20240609T020623_20240609T021626_PIC0_01.shp')
-
-
-Personal:
-    #podaac-data-subscriber -c SWOT_L2_LR_SSH_1.1 -d /Users/alexaputnam/SWOT/l2_karin/data/swot_earthdata_temp --start-date 2023-06-16T00:00:00Z --end-date 2023-06-16T23:59:59Z
-    #os.system("podaac-data-subscriber -c SWOT_L2_LR_SSH_1.1 -d /Users/alexaputnam/SWOT/l2_karin/data/swot_earthdata_temp --start-date 2023-06-16T00:00:00Z --end-date 2023-06-16T23:59:59Z") 
-    #(-52,64,-49.8,64.8)
-    #bounding_box=(-70,50,-40,70),
-    # Earth Data username: alexa.putnam@colorado.edu
-    # Earth Data password: 24Ned!
-
-    pthSV="/Users/alexaputnam/Roses_2022_A44_CSDSA/SWOT/"
-Random:
-    all_files = ['S5P_OFFL_L2__SO2____20181222T113340_20181222T131510_06173_01_010105_20181228T221109.nc', 'S5P_OFFL_L2__SO2____20181223T111438_20181223T125608_06187_01_010105_20181229T211412.nc']
-    filename = 'C:/Users/Frank van der Leij/OneDrive/Documenten/BSc_python/Etna/S5P_OFFL_L2__SO2____20181224T105537_20181224T123707_06201_01_010105_20181230T202633.nc'
-    filename = 'C:https://o365coloradoedu-my.sharepoint.com/:f:/r/personal/jumi1302_colorado_edu/Documents/Spire/Mekong/spire_grzRfl?csf=1&web=1&e=sJfaID/spire_gnss-r_L1B_grzRfl_v06.01_2021-02-27T02-44-14_FM102_G27_antBRO.nc'
-    fid = Dataset(filename,'r')
-'''
-
 #########################################################################################################################
 #########################################################################################################################
 ####### GLOBAL DEFINITIONS to be adjusted by user
@@ -49,7 +24,7 @@ Random:
 #########################################################################################################################
 # Define a path where Earthdata can temporarily download data to. Once downloaded, the function pulls out the 
 #   data of interest and then deletes the file within the pth_temp.
-pth_temp = '/Users/alexaputnam/SWOT/l2_karin/data/swot_earthdata_temp/'
+pth_temp = '/temporary/directory/to/download/pull/delete/product/data/swot_earthdata_temp/'
 
 AUTHOR = "Alexa Putnam"
 INSTITUTION = "University of Colorado Boulder"
@@ -57,11 +32,11 @@ SAVETAG = 'Putnam'
 
 #########################################################################################################################
 #########################################################################################################################
-####### Examples
+####### Example
 #########################################################################################################################
 #########################################################################################################################
 '''
-# Example for 
+# Example for Ocean
 # Input
 LOC = 'nuuk'
 LLMM = [64, 65, -53, -49]
