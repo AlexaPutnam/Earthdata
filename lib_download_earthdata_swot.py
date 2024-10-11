@@ -118,6 +118,9 @@ def earth_data_route(LOC,LLMM,yrS,mnS,dyS,hrS,yrE,mnE,dyE,hrE,PTHSAV,PASS=[],SCE
         print('granule_name: '+GN)
         ###
         results_ex = earthaccess.search_data(short_name = SN,temporal = (start_data, end_data),granule_name = GN) # here we filter by Reach files (not node), pass #13 and continent code=NA
+        if SN=='SWOT_L2_HR_PIXC_2.0':
+            SN2 = 'SWOT_L2_HR_PIXCVec_2.0'    
+            results_ex2 = earthaccess.search_data(short_name = SN2,temporal = (start_data, end_data),granule_name = GN)   
         N_ex = np.shape(results_ex)[0]
         cyc_ex=[]
         pass_ex=[]
@@ -149,7 +152,7 @@ def earth_data_route(LOC,LLMM,yrS,mnS,dyS,hrS,yrE,mnE,dyE,hrE,PTHSAV,PASS=[],SCE
                     # Filter and save as netCDF
                     if 'SWOT_L2_HR_RiverSP' in results_ex[iex[0]]['meta']['native-id']:
                         fnii_ex = results_ex[iex[0]]['meta']['native-id']+'.zip'
-                        FILESV = pthSV+fnii_ex[:-4]+'_'+LOC+'_'+SAVETAG+'.nc'
+                        FILESV = PTHSAV+fnii_ex[:-4]+'_'+LOC+'_'+SAVETAG+'.nc'
                         if 'Node' in GN:
                             print('File to pull_and_save_node: '+fnii_ex)
                             pull_and_save_node(fnii_ex,LLMM,FILESV=FILESV)
@@ -159,14 +162,18 @@ def earth_data_route(LOC,LLMM,yrS,mnS,dyS,hrS,yrE,mnE,dyE,hrE,PTHSAV,PASS=[],SCE
                     elif 'SWOT_L2_HR_Raster' in results_ex[iex[0]]['meta']['native-id']:
                         fnii_ex = results_ex[iex[0]]['meta']['native-id']+'.nc'
                         print('File to pull_and_save_raster: '+fnii_ex)
-                        FILESV = pthSV+fnii_ex[:-3]+'_'+LOC+'_'+SAVETAG+'.nc'
+                        FILESV = PTHSAV+fnii_ex[:-3]+'_'+LOC+'_'+SAVETAG+'.nc'
                         pull_and_save_raster(fnii_ex,LLMM,FILESV=FILESV)
                     elif 'SWOT_L2_HR_PIXC' in results_ex[iex[0]]['meta']['native-id']:
+                        earthaccess.download(results_ex2[iex[0]], pth_temp)
                         fnii_ex = results_ex[iex[0]]['meta']['native-id']+'.nc'
+                        fnii_ex2 = results_ex2[iex[0]]['meta']['native-id']+'.nc'
                         print('File to pull_and_save_pixc: '+fnii_ex)
+                        print('File to pull_and_save_pixc: '+fnii_ex2)
                         DT=dt.datetime.today().strftime('%Y%m%d%H%M')
-                        FILESV = pthSV+fnii_ex[:-3]+'_'+LOC+'_'+SAVETAG+'_'+DT+'.nc'
-                        pull_and_save_pixc(fnii_ex,LLMM,FILESV=FILESV)
+                        FILESV = PTHSAV+fnii_ex[:-3]+'_'+LOC+'_'+SAVETAG+'_'+DT+'.nc'
+                        pull_and_save_pixc(fnii_ex,fnii_ex2,LLMM,FILESV=FILESV)
+                        os.system("rm "+pth_temp+fnii_ex2)
                         # erase downloaded files
                     os.system("rm "+pth_temp+fnii_ex)
 
@@ -383,24 +390,19 @@ def interpolate_data(data_old,lat_old,lon_old,lat_new,lon_new):
 #########################################################################################################################
 #########################################################################################################################
 ############## PIXC PRODUCT FUNCTIONS ############## 
-def pixc_var(dsv_ex_pix,LLMM):
+def pixcvec_var(dsv_ex_pix,LLMM):
+    dsv_pix = Dataset('/Users/alexaputnam/Papers_meetings_presentations_lectures/Yang_GNSSr_paper_2024/Data/TestData/SWOT_L2_HR_PIXC_019_242_161L_20240808T101037_20240808T101049_PIC0_01.nc')
+    dsv_pixV = Dataset('/Users/alexaputnam/Papers_meetings_presentations_lectures/Yang_GNSSr_paper_2024/Data/TestData/SWOT_L2_HR_PIXCVec_019_242_161L_20240808T101037_20240808T101049_PIC0_01.nc')
+
+    hp = dsv_pix['pixel_cloud']['height'][:]
+    hpv = dsv_pixV['height_vectorproc'][:]
+
+def pixc_var(dsv_ex_pix,dsv_ex_pix2,LLMM):
     # Quality flags
     """
     flag_meanings: no_coherent_gain power_close_to_noise_floor detected_water_but_no_prior_water detected_water_but_bright_land water_false_detection_rate_suspect coherent_power_suspect tvp_suspect sc_event_suspect small_karin_gap in_air_pixel_degraded specular_ringing_degraded coherent_power_bad tvp_bad sc_event_bad large_karin_gap
     flag_masks: [1, 2, 4, 8, 16, 2048, 8192, 16384, 32768, 262144, 524288, 134217728, 536870912,  1073741824,  2147483648]
     """
-    class_qual = dsv_ex_pix['classification_qual'][:]
-    coh_power = dsv_ex_pix['coherent_power'][:]
-    geolocation_qual = dsv_ex_pix['geolocation_qual'][:]
-    interferogram_qual= dsv_ex_pix['interferogram_qual'][:]
-    sig0_qual = dsv_ex_pix['sig0_qual'][:]#0,1,2,3 = good, suspect, degraded and bad measurements
-    pixc_line_qual = dsv_ex_pix['pixc_line_qual'][:]
-    false_detection_rate = dsv_ex_pix['false_detection_rate'][:] # Probability of falsely detecting water when there is none.
-    missed_detection_rate = dsv_ex_pix['missed_detection_rate'][:] # Probability of falsely detecting no water when there is water.
-    prior_water_prob = dsv_ex_pix['prior_water_prob'][:] # Prior probability of water occurring.
-    bright_land_flag = dsv_ex_pix['bright_land_flag'][:] # not_bright_land bright_land bright_land_or_water
-    layover_impact = dsv_ex_pix['layover_impact'][:] #[m] Estimate of the height error caused by layover
-    eff_num_rare_looks = dsv_ex_pix['eff_num_rare_looks'][:] # Effective number of independent looks taken to form the rare interferogram.
     # Geodetic longitude and latitude coordinates giving the 
     ## horizontal location of the center of the observed pixel. 
     ## The latitude is a geodetic latitude with respect to the 
@@ -425,6 +427,34 @@ def pixc_var(dsv_ex_pix,LLMM):
         flag_meanings: land land_near_water water_near_land open_water dark_water low_coh_water_near_land open_low_coh_water
         flag_values: [1 2 3 4 5 6 7]
         """
+        #print('class_qual'+str(np.shape(dsv_ex_pix['class_qual'][:])))
+        #print('coh_power'+str(np.shape(dsv_ex_pix['coh_power'][:])))
+        print(dsv_ex_pix['geolocation_qual'])
+        print(dsv_ex_pix['bright_land_flag'])
+        print('geolocation_qual'+str(np.shape(dsv_ex_pix['geolocation_qual'][:])))
+        print('interferogram_qual'+str(np.shape(dsv_ex_pix['interferogram_qual'][:])))
+        print('sig0_qual'+str(np.shape(dsv_ex_pix['sig0_qual'][:])))
+        #print('pixc_line_qual'+str(np.shape(dsv_ex_pix['pixc_line_qual'][:])))
+        print('false_detection_rate'+str(np.shape(dsv_ex_pix['false_detection_rate'][:])))
+        print('missed_detection_rate'+str(np.shape(dsv_ex_pix['missed_detection_rate'][:])))
+        print('prior_water_prob'+str(np.shape(dsv_ex_pix['prior_water_prob'][:])))
+        print('bright_land_flag'+str(np.shape(dsv_ex_pix['bright_land_flag'][:])))
+        print('layover_impact'+str(np.shape(dsv_ex_pix['layover_impact'][:])))
+        print('eff_num_rare_looks'+str(np.shape(dsv_ex_pix['eff_num_rare_looks'][:])))
+        
+        #NC['class_qual'] = dsv_ex_pix['classification_qual'][:][ikp]
+        #NC['coh_power'] = dsv_ex_pix['coherent_power'][:][ikp]
+        NC['geolocation_qual'] = dsv_ex_pix['geolocation_qual'][:][ikp]
+        NC['interferogram_qual']= dsv_ex_pix['interferogram_qual'][:][ikp]
+        NC['sig0_qual'] = dsv_ex_pix['sig0_qual'][:][ikp]#0,1,2,3 = good, suspect, degraded and bad measurements
+        #NC['pixc_line_qual'] = dsv_ex_pix['pixc_line_qual'][:][ikp]
+        NC['false_detection_rate'] = dsv_ex_pix['false_detection_rate'][:][ikp] # Probability of falsely detecting water when there is none.
+        NC['missed_detection_rate'] = dsv_ex_pix['missed_detection_rate'][:][ikp] # Probability of falsely detecting no water when there is water.
+        NC['prior_water_prob'] = dsv_ex_pix['prior_water_prob'][:][ikp] # Prior probability of water occurring.
+        NC['bright_land_flag'] = dsv_ex_pix['bright_land_flag'][:][ikp] # not_bright_land bright_land bright_land_or_water
+        NC['layover_impact'] = dsv_ex_pix['layover_impact'][:][ikp] #[m] Estimate of the height error caused by layover
+        NC['eff_num_rare_looks'] = dsv_ex_pix['eff_num_rare_looks'][:][ikp] # Effective number of independent looks taken to form the rare interferogram.
+        
         NC['surf_qual'] = dsv_ex_pix['classification'][:][ikp]
         NC['cross_track'] = dsv_ex_pix['cross_track'][:][ikp] # Approximate cross-track location of the pixel.
         NC['pixel_area'] = dsv_ex_pix['pixel_area'][:][ikp] # [m^2] pixel area
@@ -445,18 +475,21 @@ def pixc_var(dsv_ex_pix,LLMM):
         NC['water_frac'] = dsv_ex_pix['water_frac'][:][ikp] # Noisy estimate of the fraction of the pixel that is water.
         NC['water_frac_unc'] = dsv_ex_pix['water_frac_uncert'][:][ikp] # Uncertainty estimate of the water fraction estimate (width of noisy water frac estimate distribution).
         NC['wse'] = dsv_ex_pix['height'][:][ikp]-NC['solid_earth_tide']-NC['load_tide_fes']-NC['pole_tide']-NC['geoid'] # Height of the pixel above the reference ellipsoid. [m]
+        NC['wse_vec'] = dsv_ex_pix2['height_vectorproc'][:][ikp]-NC['solid_earth_tide']-NC['load_tide_fes']-NC['pole_tide']-NC['geoid'] # 
     else:
         NC=0
     return NC
 
-def pull_and_save_pixc(fn_ex,LLMM,FILESV=[]):
+def pull_and_save_pixc(fn_ex,fn_ex2,LLMM,FILESV=[]):
     FN = os.listdir(pth_temp)
     if fn_ex in FN:
         if 'SWOT_L2_HR_PIXC' in fn_ex:
             print('Open file')
             dsv_ex= Dataset(pth_temp+fn_ex)['pixel_cloud']
+            dsv_ex2= Dataset(pth_temp+fn_ex2)
             print(dsv_ex.variables.keys())
-            NC = pixc_var(dsv_ex,LLMM)
+            print(dsv_ex2.variables.keys())
+            NC = pixc_var(dsv_ex,dsv_ex2,LLMM)
             if NC!=0:
                 print('Saving '+FILESV)
                 print('Data size: '+str(np.size(NC['geoid'])))
@@ -467,13 +500,14 @@ def pull_and_save_pixc(fn_ex,LLMM,FILESV=[]):
                 Nx = np.size(NC['lat'])
                 root_grp.createDimension('X', Nx)
                 #root_grp.createDimension('Y', Ny)
-                var = NC.keys()
+                var = list(NC.keys())
                 for vv in var:
                     if vv not in ['x','y']:
                         print(vv)
                         print('size :'+str(np.size(NC[vv])))
+                        print(NC[vv].astype(float))
                         xi = root_grp.createVariable(vv, 'f8', ('X'))
-                        xi[:] = NC[vv]
+                        xi[:] = NC[vv].astype(float)
                 root_grp.close()
 
 
